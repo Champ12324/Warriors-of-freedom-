@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2D Kampfspiel</title>
+    <style>
+        body { text-align: center; margin: 0; overflow: hidden; background-color: black; }
+        canvas { background: #87CEEB; display: block; margin: auto; }
+        .button {
+            position: absolute; bottom: 20px; right: 20px;
+            width: 60px; height: 60px; border-radius: 50%; background: red;
+            text-align: center; line-height: 60px; color: white; font-size: 20px;
+            user-select: none;
+        }
+        .joystick { position: absolute; bottom: 20px; left: 20px; width: 100px; height: 100px; background: rgba(255,255,255,0.3); border-radius: 50%; }
+    </style>
+</head>
+<body>
+
+    <!-- Startbildschirm -->
+    <div id="startScreen" style="position:fixed; top:0; left:0; width:100%; height:100%; background:black; color:white; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+        <h1>2D Kampfspiel</h1>
+        <button onclick="startGame()">Start</button>
+        <button onclick="toggleSettings()">Einstellungen</button>
+    </div>
+
+    <!-- Einstellungen -->
+    <div id="settingsScreen" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:black; color:white; align-items:center; justify-content:center; flex-direction:column;">
+        <h2>Einstellungen</h2>
+        <button onclick="toggleSound()">Sound: <span id="soundStatus">AN</span></button>
+        <button onclick="backToStart()">Zurück</button>
+    </div>
+
+    <!-- Spielfeld -->
+    <canvas id="gameCanvas" style="display:none;"></canvas>
+
+    <!-- Steuerung -->
+    <div id="joystick" class="joystick"></div>
+    <div id="attackButton" class="button">⚔️</div>
+    
+    <script>
+        let gameRunning = false;
+        let soundOn = true;
+
+        function startGame() {
+            document.getElementById("startScreen").style.display = "none";
+            document.getElementById("gameCanvas").style.display = "block";
+            gameRunning = true;
+            gameLoop();
+        }
+
+        function toggleSettings() {
+            document.getElementById("startScreen").style.display = "none";
+            document.getElementById("settingsScreen").style.display = "flex";
+        }
+
+        function backToStart() {
+            document.getElementById("settingsScreen").style.display = "none";
+            document.getElementById("startScreen").style.display = "flex";
+        }
+
+        function toggleSound() {
+            soundOn = !soundOn;
+            document.getElementById("soundStatus").innerText = soundOn ? "AN" : "AUS";
+        }
+
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const player = { x: 200, y: 200, size: 40, speed: 4, attacking: false };
+        const monsters = [];
+
+        function spawnMonster() {
+            monsters.push({ x: Math.random() * canvas.width, y: Math.random() * canvas.height, size: 30, speed: 2, color: "red" });
+        }
+
+        function gameLoop() {
+            if (!gameRunning) return;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = "blue";
+            ctx.fillRect(player.x, player.y, player.size, player.size);
+
+            monsters.forEach((monster, i) => {
+                monster.x += (player.x - monster.x) * 0.01;
+                monster.y += (player.y - monster.y) * 0.01;
+                ctx.fillStyle = "red";
+                ctx.fillRect(monster.x, monster.y, monster.size, monster.size);
+
+                if (player.attacking && Math.abs(monster.x - player.x) < 40 && Math.abs(monster.y - player.y) < 40) {
+                    monsters.splice(i, 1);
+                    if (soundOn) new Audio("attack.mp3").play();
+                }
+            });
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        setInterval(spawnMonster, 3000);
+
+        document.getElementById("attackButton").addEventListener("click", () => {
+            player.attacking = true;
+            setTimeout(() => player.attacking = false, 500);
+        });
+
+        let joystick = document.getElementById("joystick");
+        joystick.addEventListener("touchmove", (e) => {
+            let touch = e.touches[0];
+            let rect = joystick.getBoundingClientRect();
+            let dx = touch.clientX - (rect.left + rect.width / 2);
+            let dy = touch.clientY - (rect.top + rect.height / 2);
+            let angle = Math.atan2(dy, dx);
+            player.x += Math.cos(angle) * player.speed;
+            player.y += Math.sin(angle) * player.speed;
+        });
+
+    </script>
+</body>
+</html>
